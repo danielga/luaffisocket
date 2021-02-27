@@ -1,7 +1,8 @@
 local helpers = {}
 
 local ffi = require("ffi")
-local platform = require("socket.platform")
+local platform = require("socket.core.platform")
+local enums = platform.enums
 local library = platform.library
 
 helpers.inet_addrstrlen = 16
@@ -163,7 +164,7 @@ function helpers.bind(self, address, port, socktype, errlevel)
 	local res = library.getaddrinfo(address, port, addrinfo_instance, addrinfo_list)
 	if res ~= 0 then
 		library.freeaddrinfo(addrinfo_list[0])
-		return nil, platform.gaistrerror(res)
+		return nil, platform.gai_strerror(res)
 	end
 
 	res = library.bind(fd, addrinfo_list[0].ai_addr, addrinfo_list[0].ai_addrlen)
@@ -192,7 +193,7 @@ function helpers.connect(self, address, port, socktype, errlevel)
 	local res = library.getaddrinfo(address, port, addrinfo_instance, addrinfo_list)
 	if res ~= 0 then
 		library.freeaddrinfo(addrinfo_list[0])
-		return nil, platform.gaistrerror(res)
+		return nil, platform.gai_strerror(res)
 	end
 
 	res = library.connect(fd, addrinfo_list[0].ai_addr, addrinfo_list[0].ai_addrlen)

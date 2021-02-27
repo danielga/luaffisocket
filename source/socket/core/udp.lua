@@ -1,8 +1,7 @@
 local ffi = require("ffi")
-local core = require("socket.core")
-local helpers = require("socket.helpers")
-local enums = require("socket.enums")
-local platform = require("socket.platform")
+local helpers = require("socket.core.helpers")
+local platform = require("socket.core.platform")
+local enums = platform.enums
 local library = platform.library
 
 local UDP_GETOPTIONS = {
@@ -90,9 +89,9 @@ local UDP_SETOPTIONS = {
 	["timeout"] = function(internal, value)
 		helpers.typecheck(value, "number", 3)
 		if value == 0 then
-			helpers.setnonblocking(internal)
+			platform.setnonblocking(internal)
 		elseif value > 0 then
-			helpers.setblocking(internal)
+			platform.setblocking(internal)
 		else
 			error("invalid timeout value")
 		end
@@ -134,7 +133,7 @@ local UDP = {
 			local fd = helpers.validate(self.fd())
 
 			local sockaddr_instance = ffi.new("struct sockaddr_storage")
-			local sockaddr_size = ffi.new("socklen_t")
+			local sockaddr_size = ffi.new("socklen_t[1]")
 			sockaddr_size[0] = ffi.sizeof(sockaddr_instance)
 
 			if library.getpeername(fd, sockaddr_instance, sockaddr_size) == -1 then
@@ -144,7 +143,7 @@ local UDP = {
 			local address_buffer = ffi.new("char[?]", helpers.inet6_addrstrlen)
 			local port_buffer = ffi.new("char[?]", helpers.portstrlen)
 			local err = library.getnameinfo(
-				ffi.cast("sockaddr *", sockaddr_instance), sockaddr_size[0],
+				ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size[0],
 				address_buffer, helpers.inet6_addrstrlen,
 				port_buffer, helpers.portstrlen,
 				bit.bor(enums.NI_NUMERICHOST, enums.NI_NUMERICSERV)
@@ -159,17 +158,17 @@ local UDP = {
 			local fd = helpers.validate(self.fd())
 
 			local sockaddr_instance = ffi.new("struct sockaddr_storage")
-			local sockaddr_size = ffi.new("socklen_t")
+			local sockaddr_size = ffi.new("socklen_t[1]")
 			sockaddr_size[0] = ffi.sizeof(sockaddr_instance)
 
-			if library.getsockname(fd, sockaddr_instance, sockaddr_size) == -1 then
+			if library.getsockname(fd, ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size) == -1 then
 				return nil, platform.strerror(platform.lasterror())
 			end
 
 			local address_buffer = ffi.new("char[?]", helpers.inet6_addrstrlen)
 			local port_buffer = ffi.new("char[?]", helpers.portstrlen)
 			local err = library.getnameinfo(
-				ffi.cast("sockaddr *", sockaddr_instance), sockaddr_size[0],
+				ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size[0],
 				address_buffer, helpers.inet6_addrstrlen,
 				port_buffer, helpers.portstrlen,
 				bit.bor(enums.NI_NUMERICHOST, enums.NI_NUMERICSERV)
@@ -199,13 +198,13 @@ local UDP = {
 			helpers.typeoptcheck(size, "number", 2)
 
 			local sockaddr_instance = ffi.new("struct sockaddr_storage")
-			local sockaddr_size = ffi.new("socklen_t")
+			local sockaddr_size = ffi.new("socklen_t[1]")
 			sockaddr_size[0] = ffi.sizeof(sockaddr_instance)
 
 			local data_size = 65535
 			local data_buffer = ffi.new("char[?]", data_size)
 
-			local res = library.recvfrom(fd, data_buffer, math.min(size or data_size, data_size), 0, sockaddr_instance, sockaddr_size)
+			local res = library.recvfrom(fd, data_buffer, math.min(size or data_size, data_size), 0, ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size)
 			if res == -1 then
 				return nil, platform.strerror(platform.lasterror())
 			end
@@ -213,7 +212,7 @@ local UDP = {
 			local address_buffer = ffi.new("char[?]", helpers.inet6_addrstrlen)
 			local port_buffer = ffi.new("char[?]", helpers.portstrlen)
 			local err = library.getnameinfo(
-				ffi.cast("sockaddr *", sockaddr_instance), sockaddr_size[0],
+				ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size[0],
 				address_buffer, helpers.inet6_addrstrlen,
 				port_buffer, helpers.portstrlen,
 				bit.bor(enums.NI_NUMERICHOST, enums.NI_NUMERICSERV)
@@ -274,7 +273,7 @@ local UDP = {
 			local fd = helpers.validate(self.fd())
 			helpers.typecheck(name, "string", 2)
 
-			local optionsetter = optioncheck(name, UDP_SETOPTIONS, 2)
+			local optionsetter = helpers.optioncheck(name, UDP_SETOPTIONS, 2)
 			return optionsetter(fd, value)
 		end,
 		settimeout = function(self, value)

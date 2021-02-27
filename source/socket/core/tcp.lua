@@ -1,8 +1,7 @@
 local ffi = require("ffi")
-local core = require("socket.core")
-local enums = require("socket.enums")
-local helpers = require("socket.helpers")
-local platform = require("socket.platform")
+local helpers = require("socket.core.helpers")
+local platform = require("socket.core.platform")
+local enums = platform.enums
 local library = platform.library
 
 local TCP
@@ -125,7 +124,7 @@ TCP = {
 			local fd = helpers.validate(self.fd())
 
 			local sockaddr_instance = ffi.new("struct sockaddr_storage")
-			local sockaddr_size = ffi.new("socklen_t")
+			local sockaddr_size = ffi.new("socklen_t[1]")
 			sockaddr_size[0] = ffi.sizeof(sockaddr_instance)
 
 			if library.getpeername(fd, sockaddr_instance, sockaddr_size) == -1 then
@@ -135,7 +134,7 @@ TCP = {
 			local address_buffer = ffi.new("char[?]", helpers.int6_addrstrlen)
 			local port_buffer = ffi.new("char[?]", helpers.portstrlen)
 			local err = library.getnameinfo(
-				ffi.cast("sockaddr *", sockaddr_instance), sockaddr_size[0],
+				ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size[0],
 				address_buffer, helpers.int6_addrstrlen,
 				port_buffer, helpers.portstrlen,
 				bit.bor(enums.NI_NUMERICHOST, enums.NI_NUMERICSERV)
@@ -150,7 +149,7 @@ TCP = {
 			local fd = helpers.validate(self.fd())
 
 			local sockaddr_instance = ffi.new("struct sockaddr_storage")
-			local sockaddr_size = ffi.new("socklen_t")
+			local sockaddr_size = ffi.new("socklen_t[1]")
 			sockaddr_size[0] = ffi.sizeof(sockaddr_instance)
 
 			if library.getsockname(fd, sockaddr_instance, sockaddr_size) == -1 then
@@ -160,7 +159,7 @@ TCP = {
 			local address_buffer = ffi.new("char[?]", helpers.int6_addrstrlen)
 			local port_buffer = ffi.new("char[?]", helpers.portstrlen)
 			local err = library.getnameinfo(
-				ffi.cast("sockaddr *", sockaddr_instance), sockaddr_size[0],
+				ffi.cast("struct sockaddr *", sockaddr_instance), sockaddr_size[0],
 				address_buffer, helpers.int6_addrstrlen,
 				port_buffer, helpers.portstrlen,
 				bit.bor(enums.NI_NUMERICHOST, enums.NI_NUMERICSERV)
